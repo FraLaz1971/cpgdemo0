@@ -144,9 +144,11 @@ pgdem1$(EEXT): pgdem1$(OEXT) pgex0$(OEXT) pgex1$(OEXT)
 	$(PGLOCDIR)/libXau.a $(PGLOCDIR)/libXdmcp.a \
 	$(PGLOCDIR)/libpng16.a $(PGLOCDIR)/libz.a $(PGLOCDIR)/libquadmath.a -ldl
 
+simple$(OEXT): simple.f
+	$(FCOMPL) -c $(FFLAGC) $?
 
 simple: $(DEMDIR)/simple$(OEXT)
-	$(FCOMPL) $(FFLAGD) -o $@ $? $(PGPLOT_LIB) $(LDFLAGS)
+	$(FCOMPL) $(FFLAGD) -o $@ $? -L$(PGLOCDIR) -lpgplot $(LDFLAGS)
 
 #-----------------------------------------------------------------------
 # Target "grfont.dat" is the binary font file.
