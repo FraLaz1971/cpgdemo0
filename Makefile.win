@@ -77,7 +77,7 @@ RANLIB=ranlib
 #
 # Routine lists.
 #
-TARGETS=pgdem1$(EEXT)
+TARGETS=pgdem1$(EEXT) simple$(EEXT)
 #
 DEMDIR= .
 #-----------------------------------------------------------------------
@@ -154,6 +154,9 @@ simple$(OEXT): simple.f
 simple: $(DEMDIR)/simple$(OEXT)
 	$(FCOMPL) $(FFLAGD) -o $@ $? $(PGPLOT_LIB) $(LDFLAGS)
 
+simple$(EEXT): $(DEMDIR)/simple$(OEXT)
+	$(FCOMPL) $(FFLAGD) -o $@ $? $(PGPLOT_LIB) $(LDFLAGS)
+
 #-----------------------------------------------------------------------
 # Target "grfont.dat" is the binary font file.
 # This is created from grfont.txt with the "pgpack" program.
@@ -181,7 +184,7 @@ simple: $(DEMDIR)/simple$(OEXT)
 # Target "install" is required for Figaro.
 #-----------------------------------------------------------------------
 install:
-	mv pgdem1$(EEXT) $(GFORTRAN_DIR)
+	mv $(TARGETS) $(GFORTRAN_DIR)
 
 run: pgdem1
 	./pgdem1 < pgplot_type.conf
