@@ -9,16 +9,19 @@ include Makefile-win.in
 SHELL=/bin/sh
 #
 RM = rm -f
-OUTEXT = .png
+OUTEXT = .ps
 OUTFILE = simple$(OUTEXT)
-EEXE = .exe
-OEXE = .o
+EEXT = .exe
+OEXT = .o
 #	PGPLOT subdirectories
 SRC=.
+#
+.PHONY = clean distclea pgdem1 prog all install
 #
 # Fortran compiler and compilation flags
 #
 FCOMPL=i686-w64-mingw32-gfortran
+#FCOMPL=gfortran
 FFLAGC=-u -Wall -fPIC -O
 FFLAGD=-fno-backslash
 #
@@ -41,9 +44,10 @@ PGBIND_FLAGS=bsd
 #
 # Loader library-flags
 #
+PGLOCDIR=i686-w64-mingw32-gcc
 MINGWLIBS=$(GFORTRAN_DIR)/libgcc_s_dw2-1.dll $(GFORTRAN_DIR)/libgfortran-5.dll
 XLIBS=-L/usr/X11R6/lib -lX11
-LDFLAGS=-L$(PGPLOT_DIR) $(XLIBS)
+LDFLAGS=-L$(PGPLOT_DIR) 
 MOTIF_LIBS=-L$(PGPLOT_DIR) -lXm -lXt -L/usr/X11R6/lib -lX11
 ATHENA_LIBS=-L$(PGPLOT_DIR) -lXaw -lXt -lXmu -lXext -L/usr/X11R6/lib -lX11
 TK_LIBS=-L/usr/lib -ltk -ltcl -L/usr/X11R6/lib -lX11 -ldl
@@ -73,13 +77,13 @@ RANLIB=ranlib
 #
 # Routine lists.
 #
-DEMOS=pgprog1
+TARGETS=pgdem1$(EEXT)
 #
 DEMDIR= .
 #-----------------------------------------------------------------------
 # Target "all" makes everything (except the library of obsolete routines)
 #-----------------------------------------------------------------------
-all: $(DEMOS)
+all: $(TARGETS)
 	@echo ' ';echo '*** Finished compilation of PGPLOT example ***';echo ' '
 	@echo 'Note that the following files will be needed.'
 	@echo ' '
@@ -102,7 +106,7 @@ all: $(DEMOS)
 	@echo ' '
 
 #-----------------------------------------------------------------------
-# Rules for compiling the .o files
+# Rules for compiling the $(OEXT) files
 #-----------------------------------------------------------------------
 
 #-----------------------------------------------------------------------
@@ -110,9 +114,9 @@ all: $(DEMOS)
 # reading the "drivers.list" file.
 #-----------------------------------------------------------------------
 
-DISPATCH_ROUTINE=grexec.o
+DISPATCH_ROUTINE=grexec$(OEXT)
 
-grexec.o: grexec.f
+grexec$(OEXT): grexec.f
 	$(FCOMPL) -c $(FFLAGC) grexec.f
 
 #-----------------------------------------------------------------------
@@ -126,10 +130,30 @@ grexec.o: grexec.f
 # Target "prog" is used to make the demo programs. They can also be made
 # individually.
 #-----------------------------------------------------------------------
-prog: $(DEMOS)
+prog: $(TARGETS)
 
-pgprog1: $(DEMDIR)/pgdem1.o $(DEMDIR)/pgex0.o $(DEMDIR)/pgex1.o
-	$(FCOMPL) $(FFLAGD) -o $@ $? $(PGPLOT_LIB) $(LIBS)
+
+pgdem1$(OEXT): pgdem1.f
+	$(FCOMPL) -c $(FFLAGC) $?
+
+pgex0$(OEXT): pgex0.f
+	$(FCOMPL) -c $(FFLAGC) $?
+
+pgex1$(OEXT): pgex1.f
+	$(FCOMPL) -c $(FFLAGC) $?
+
+pgdem1$(EEXT): pgdem1$(OEXT) pgex0$(OEXT) pgex1$(OEXT)
+	$(FCOMPL) $(FFLAGD) -o $@ $? $(PGPLOT_LIB) $(LDFLAGS)
+
+pgdem1: pgdem1$(OEXT) pgex0$(OEXT) pgex1$(OEXT)
+	$(FCOMPL) $(FFLAGD) -o $@ $? $(PGPLOT_LIB) $(LDFLAGS)
+	
+simple$(OEXT): simple.f
+	$(FCOMPL) -c $(FFLAGC) $?
+
+simple: $(DEMDIR)/simple$(OEXT)
+	$(FCOMPL) $(FFLAGD) -o $@ $? $(PGPLOT_LIB) $(LDFLAGS)
+
 #-----------------------------------------------------------------------
 # Target "grfont.dat" is the binary font file.
 # This is created from grfont.txt with the "pgpack" program.
@@ -157,17 +181,27 @@ pgprog1: $(DEMDIR)/pgdem1.o $(DEMDIR)/pgex0.o $(DEMDIR)/pgex1.o
 # Target "install" is required for Figaro.
 #-----------------------------------------------------------------------
 install:
-	mv pgprog1$(EEXE) $(GFORTRAN_DIR)
+	mv pgprog1$(EEXT) $(GFORTRAN_DIR)
 
-run: pgprog1
-	./pgprog1 < pgplot_type.conf
+run: pgdem1
+	./pgdem1 < pgplot_type.conf
 
+static: pgdem1$(OEXT)  pgex0$(OEXT)  pgex1$(OEXT)
+	$(FCOMPL)  -dynamiclib -lgfortran -static-libgfortran $(FFLAGD) \
+	-o pgdem1$(EEXT) $? -L`pwd` $(PGLOCDIR)/libpgplot.a \
+	$(PGLOCDIR)/libquadmath.a
+	mv pgdem1$(EEXT) $(PGLOCDIR)
 
 #-----------------------------------------------------------------------
 # Target "clean" is used to remove all the intermediate files.
 #-----------------------------------------------------------------------
 clean :
-	$(RM)  $(DEMOS) pgdem1.o pgex0.o pgex1.o $(OUTFILE)
+	$(RM)  $(TARGETS) simple$(EEXT) pgdem1$(OEXT) pgex0$(OEXT) pgex1$(OEXT)
+#-----------------------------------------------------------------------
+# Target "distclean" is used to remove also the output files.
+#-----------------------------------------------------------------------
+distclean : clean
+	$(RM)  $(OUTFILE)
 
 #-----------------------------------------------------------------------
 # Include file dependencies
