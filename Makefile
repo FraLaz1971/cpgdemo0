@@ -5,29 +5,30 @@
 # This generates the PGPLOT binary files (libraries and demos) in the
 # current default directory (which need not be the source directory).
 #-----------------------------------------------------------------------
-include Makefile-win.in
+include Makefile.in
 SHELL=/bin/sh
 #
 RM = rm -f
+EEXT =
+OEXT = .o
 OUTEXT = .ps
 OUTFILE = simple$(OUTEXT)
-EEXT = .exe
-OEXT = .o
 #	PGPLOT subdirectories
 SRC=.
 #
 # Fortran compiler and compilation flags
 #
-FCOMPL=i686-w64-mingw32-gfortran
+FCOMPL=g77
 FFLAGC=-u -Wall -fPIC -O
 FFLAGD=-fno-backslash
+FC=g77
 #
 # C compiler and compilation flags
 #
-XINCL=-I/usr/X11R6/include
-MOTIF_INCL=-I/usr/X11R6/include -IXm
-ATHENA_INCL=-I/usr/X11R6/include
-TK_INCL=-I/usr/include -I/usr/X11R6/include -I/usr/include/tcl8.6
+XINCL=-I/usr/include/X11
+MOTIF_INCL=-I/usr/include/X11 -IXm
+ATHENA_INCL=-I/usr/include/X11
+TK_INCL=-I/usr/include -I/usr/include/X11 -I/usr/include/tcl8.6
 RV_INCL=
 CCOMPL=gcc
 CFLAGC=-Wall -fPIC -DPG_PPU -O -I.
@@ -41,18 +42,19 @@ PGBIND_FLAGS=bsd
 #
 # Loader library-flags
 #
-PGLOCDIR=i686-w64-mingw32-gcc
-MINGWLIBS=$(GFORTRAN_DIR)/libgcc_s_dw2-1.dll $(GFORTRAN_DIR)/libgfortran-5.dll
-XLIBS=-L/usr/X11R6/lib -lX11
-LDFLAGS=-L$(PGPLOT_DIR) 
-MOTIF_LIBS=-L$(PGPLOT_DIR) -lXm -lXt -L/usr/X11R6/lib -lX11
-ATHENA_LIBS=-L$(PGPLOT_DIR) -lXaw -lXt -lXmu -lXext -L/usr/X11R6/lib -lX11
-TK_LIBS=-L/usr/lib -ltk -ltcl -L/usr/X11R6/lib -lX11 -ldl
+XLIBS=-L/usr/lib/x86_64-linux-gnu -lX11
+PNGLIBS=-lpng -lz
+LDFLAGS=
+PGLOCDIR=x86_64-linux-gnu
+PGPLOT_DIR=`pwd`/$(PGLOCDIR)
+MOTIF_LIBS=-lXm -lXt $(XLIBS)
+ATHENA_LIBS=-lXaw -lXt -lXmu -lXext $(XLIBS)
+TK_LIBS=-L/usr/lib -ltk -ltcl $(XLIBS) -ldl
 #
 #	Loader command for PGPLOT library
 #
-PGPLOT_LIB=$(LDFLAGS) $(MINGWLIBS) -L`pwd` -lpgplot -lpng -lz
-CPGPLOT_LIB=$(LDFLAGS) $(MINGWLIBS) -L`pwd` -lcpgplot -lpgplot -lpng -lz
+PGPLOT_LIB=-L`pwd` $(PGLOCDIR)/libpgplot.a  $(PNGLIBS) $(XLIBS)
+CPGPLOT_LIB=-L`pwd` $(PGLOCDIR)/libcpgplot.a  $(PNGLIBS) $(XLIBS)
 #
 # Shared library creation.
 #
@@ -74,7 +76,7 @@ RANLIB=ranlib
 #
 # Routine lists.
 #
-TARGETS=pgdem1
+TARGETS=pgdem1$(EEXTE) simple$(OEXTE)
 #
 DEMDIR= .
 #-----------------------------------------------------------------------
@@ -82,8 +84,8 @@ DEMDIR= .
 #-----------------------------------------------------------------------
 all: $(TARGETS)
 	@echo ' ';echo '*** Finished compilation of PGPLOT example ***';echo ' '
-	@echo 'Note that the following files will be needed.'
-	@echo ' '
+	@echo 'Note that the following files may be needed.'
+	@echo ' (it depends on the pgplot features you use)'
 	@echo '       libpgplot.a'
 	@echo '       libpgplot.so'
 	@echo '       grfont.dat'
@@ -100,16 +102,13 @@ all: $(TARGETS)
 	@echo 'Also note that subsequent usage of PGPLOT programs requires that'
 	@echo 'the full path of the chosen installation directory be named in'
 	@echo 'an environment variable named PGPLOT_DIR.'
+	@echo 'during this build PGPLOT_DIR was set to '$(PGPLOT_DIR)
 	@echo ' '
 
 #-----------------------------------------------------------------------
 # Rules for compiling the $(OEXT) files
 #-----------------------------------------------------------------------
 
-#-----------------------------------------------------------------------
-# The device-driver dispatch routine is generated automatically by
-# reading the "drivers.list" file.
-#-----------------------------------------------------------------------
 
 DISPATCH_ROUTINE=grexec$(OEXT)
 
@@ -144,7 +143,7 @@ pgdem1$(EEXT): pgdem1$(OEXT) pgex0$(OEXT) pgex1$(OEXT)
 	$(PGLOCDIR)/libXmPgplot.a $(PGLOCDIR)/libX11.a $(PGLOCDIR)/libxcb.a \
 	$(PGLOCDIR)/libXau.a $(PGLOCDIR)/libXdmcp.a \
 	$(PGLOCDIR)/libpng16.a $(PGLOCDIR)/libz.a $(PGLOCDIR)/libquadmath.a -ldl
-	
+
 simple$(OEXT): simple.f
 	$(FCOMPL) -c $(FFLAGC) $?
 
@@ -173,29 +172,45 @@ simple: $(DEMDIR)/simple$(OEXT)
 # Target "libxmpgplot.a" contains the Motif widget driver.
 #-----------------------------------------------------------------------
 
+cleancpgdemo:
+	$(RM) cpgdemo cpgdemo$(OEXT)
+
+cpgdemo$(OEXT): cpgplot.h cpgdemo.c $(PGLOCDIR)/libcpgplot.a
+	$(RM) cpgdemo cpgdemo$(OEXT)
+	$(CCOMPL) $(CFLAGD) -c -I. cpgdemo.c
+
+cpgdemo: cpgdemo$(OEXT) $(PGLOCDIR)/libcpgplot.a $(PGLOCDIR)/libpgplot.a
+	$(RM) cpgdemo;\
+	$(FCOMPL) -dynamiclib -lgfortran -static-libgfortran -fno-backslash \
+	-o cpgdemo $?  \
+	$(PGLOCDIR)/libXaPgplot.a \
+        $(PGLOCDIR)/libXmPgplot.a $(PGLOCDIR)/libX11.a $(PGLOCDIR)/libxcb.a \
+        $(PGLOCDIR)/libXau.a $(PGLOCDIR)/libXdmcp.a \
+        $(PGLOCDIR)/libpng16.a $(PGLOCDIR)/libz.a $(PGLOCDIR)/libquadmath.a -ldl; \
+	$(RM) cpgdemo$(OEXT)
+
 
 #-----------------------------------------------------------------------
 # Target "install" is required for Figaro.
 #-----------------------------------------------------------------------
 install:
-	mv pgprog1$(EEXT) $(GFORTRAN_DIR)
 
-run: pgdem1
-	./pgdem1 < pgplot_type.conf
-
+run: pgprog1
+	./pgprog1 < pgplot_type.conf
 static: pgdem1$(OEXT)  pgex0$(OEXT)  pgex1$(OEXT)
 	$(FCOMPL)  -dynamiclib -lgfortran -static-libgfortran $(FFLAGD) \
-	-o pgdem1$(EEXT) $? -L`pwd` $(PGLOCDIR)/libpgplot.a \
-	$(PGLOCDIR)/libquadmath.a
-	mv pgdem1$(EEXT) $(GFORTRAN_DIR)
+	-o pgprog1 $? -L`pwd` $(PGLOCDIR)/libpgplot.a $(PGLOCDIR)/libXaPgplot.a \
+	$(PGLOCDIR)/libXmPgplot.a $(PGLOCDIR)/libX11.a $(PGLOCDIR)/libxcb.a \
+	$(PGLOCDIR)/libXau.a $(PGLOCDIR)/libXdmcp.a \
+	$(PGLOCDIR)/libpng16.a $(PGLOCDIR)/libz.a $(PGLOCDIR)/libquadmath.a -ldl
 
 #-----------------------------------------------------------------------
 # Target "clean" is used to remove all the intermediate files.
 #-----------------------------------------------------------------------
 clean :
-	$(RM)  $(DEMOS) pgdem1$(OEXT) pgex0$(OEXT) pgex1$(OEXT) $(OUTFILE)
+	$(RM)  $(TARGETS) pgdem1$(OEXT) pgex0$(OEXT) pgex1$(OEXT) simple$(OEXT) cpgdemo$(OEXT)
 #-----------------------------------------------------------------------
-# Target "distclean" is used to remove also the output files.
+# Target "clean" is used to remove also the output files.
 #-----------------------------------------------------------------------
 distclean : clean
 	$(RM)  $(TARGETS) pgdem1$(OEXT) pgex0$(OEXT) pgex1$(OEXT) simple$(OEXT) cpgdemo$(OEXT) $(OUTFILE)

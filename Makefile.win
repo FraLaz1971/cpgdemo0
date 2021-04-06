@@ -54,8 +54,8 @@ TK_LIBS=-L/usr/lib -ltk -ltcl -L/usr/X11R6/lib -lX11 -ldl
 #
 #	Loader command for PGPLOT library
 #
-PGPLOT_LIB=$(LDFLAGS) $(MINGWLIBS) -L`pwd` -lpgplot -lpng -lz
-CPGPLOT_LIB=$(LDFLAGS) $(MINGWLIBS) -L`pwd` -lcpgplot -lpgplot -lpng -lz
+PGPLOT_LIB=$(LDFLAGS) $(MINGWLIBS) -L`pwd` -lpgplot
+CPGPLOT_LIB=$(LDFLAGS) $(MINGWLIBS) -L`pwd` -lcpgplot -lpgplot
 #
 # Shared library creation.
 #
@@ -181,7 +181,7 @@ simple: $(DEMDIR)/simple$(OEXT)
 # Target "install" is required for Figaro.
 #-----------------------------------------------------------------------
 install:
-	mv pgprog1$(EEXT) $(GFORTRAN_DIR)
+	mv pgdem1$(EEXT) $(GFORTRAN_DIR)
 
 run: pgdem1
 	./pgdem1 < pgplot_type.conf
