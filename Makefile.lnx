@@ -53,8 +53,8 @@ TK_LIBS=-L/usr/lib -ltk -ltcl $(XLIBS) -ldl
 #
 #	Loader command for PGPLOT library
 #
-PGPLOT_LIB=-L`pwd` $(PGLOCDIR)/libpgplot.a $(PNGLIBS) $(XLIBS)
-CPGPLOT_LIB=-L`pwd` $(PGLOCDIR)/libcpgplot.a $(PNGLIBS) $(XLIBS)
+PGPLOT_LIB=-L`pwd` $(PGLOCDIR)/libpgplot.a  $(PNGLIBS) $(XLIBS)
+CPGPLOT_LIB=-L`pwd` $(PGLOCDIR)/libcpgplot.a  $(PNGLIBS) $(XLIBS)
 #
 # Shared library creation.
 #
@@ -148,7 +148,7 @@ simple$(OEXT): simple.f
 	$(FCOMPL) -c $(FFLAGC) $?
 
 simple: $(DEMDIR)/simple$(OEXT)
-	$(FCOMPL) $(FFLAGD) -o $@ $? -L$(PGLOCDIR) -lpgplot $(LDFLAGS)
+	$(FCOMPL) $(FFLAGD) -o $@ $? $(PGPLOT_LIB) $(LDFLAGS)
 
 #-----------------------------------------------------------------------
 # Target "grfont.dat" is the binary font file.
